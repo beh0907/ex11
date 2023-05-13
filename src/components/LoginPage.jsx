@@ -27,6 +27,8 @@ const LoginPage = ({ history }) => {
             .then(success => {
                 alert("로그인성공:" + success);
                 sessionStorage.setItem('email', email)
+                sessionStorage.setItem('uid', success.user.uid)
+
                 history.push('/')
                 setLoading(false);
             })

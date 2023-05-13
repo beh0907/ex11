@@ -1,16 +1,30 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useState } from 'react'
 import { Col, Row, Card, Form, InputGroup, Button } from 'react-bootstrap'
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore'
+import { app } from '../firebase/firebaseInit'
 
 const MyPage = () => {
-    const [form, setForm] = useState({
-        name: '박인협',
-        address: '경기도 안산시 초지동 원초로 61',
-        phone: '010-5191-0758',
-        image: 'https://via.placeholder.com/200x200',
-    })
+    const uid = sessionStorage.getItem('uid')
+    const db = getFirestore(app)
+    const [image, setImage] = useState('http://via.placeholder.com/200x200')
 
-    const { name, phone, address, image } = form
+    const [loading, setLoading] = useState(false)
+    const [form, setForm] = useState({
+        email: '',
+        name: '',
+        phone: '',
+        address: '',
+        photo: ''
+    })
+    const { name, phone, address, photo } = form
+
+    const getUser = async () => {
+        setLoading(true)
+        const result = await getDoc(doc(db, 'user', uid));
+        setForm(result.data())
+        setLoading(false)
+    }
 
     const onChange = (e) => {
         setForm({
@@ -26,6 +40,18 @@ const MyPage = () => {
         })
     }
 
+    const onUpdate = async () => {
+        if (!window.confirm('수정된 내용을 저장하시겠습니까?')) return
+
+        await setDoc(doc(db, 'user', uid), form)
+        alert('수정이 완료되었습니다.')
+    }
+
+    useEffect(() => {
+        getUser()
+    }, [])
+
+    if (loading) return <h1 className='text-center my-5'>유저 정보 조회 중......</h1>
     return (
         <Row className='justify-content-center my-5'>
             <Col md={8}>
@@ -50,9 +76,9 @@ const MyPage = () => {
                         </InputGroup>
                         <div className='my-2'>
                             <img src={image} width={'25%'} />
-                            <Form.Control type='file' name='image' className='mt-2' onChange={onChangeFile}/>
+                            <Form.Control type='file' name='photo' className='mt-2' onChange={onChangeFile} />
                         </div>
-                        <Button className='w-100'>정 보 수 정</Button>
+                        <Button onClick={onUpdate} className='w-100'>정 보 수 정</Button>
                     </Form>
                 </Card>
             </Col>

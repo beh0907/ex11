@@ -4,9 +4,18 @@ import { Col, Row, Card, Form, InputGroup, Button } from 'react-bootstrap'
 import { app } from '../firebase/firebaseInit'
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth'
 import { Link } from 'react-router-dom'
+import {
+    doc,
+    getDocs,
+    getFirestore,
+    query,
+    setDoc,
+} from 'firebase/firestore'
 
-const JoinPage = ({history}) => {
+const JoinPage = ({ history }) => {
     const auth = getAuth(app);
+    const db = getFirestore(app)
+
     const [form, setForm] = useState({
         email: 'qkrdlsguq@inha.com',
         password: '!vnf04080907'
@@ -26,13 +35,22 @@ const JoinPage = ({history}) => {
 
         setLoading(true)
         createUserWithEmailAndPassword(auth, email, password)
-        .then(success => {
-            history.push('/login')
-            setLoading(false)
-        }).catch(error => {
-            alert('회원 등록에 실패하였습니다' + error.message)
-            setLoading(false)
-        })
+            .then(async success => {
+                const uid = success.user.uid;
+                await setDoc(doc(db, 'user', uid), {
+                    email: email,
+                    name: '박인협',
+                    address: '경기도 안산시 원초로 61',
+                    phone: '010-5191-0758',
+                    photo: ''
+                });
+                setLoading(false);
+                history.push('/login');
+            })
+            .catch(error => {
+                alert('에러:' + error.message);
+                setLoading(false);
+            });
     }
 
     if (loading) return <h1 className='text-center my-5'>회원등록 중......</h1>
