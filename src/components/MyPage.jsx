@@ -3,11 +3,15 @@ import { useState } from 'react'
 import { Col, Row, Card, Form, InputGroup, Button } from 'react-bootstrap'
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore'
 import { app } from '../firebase/firebaseInit'
+import { ref, getStorage, uploadBytes, getDownloadURL } from 'firebase/storage'
 
-const MyPage = () => {
+const MyPage = ({ history }) => {
     const uid = sessionStorage.getItem('uid')
     const db = getFirestore(app)
-    const [image, setImage] = useState('http://via.placeholder.com/200x200')
+    const storage = getStorage(app)
+
+    const [image, setImage] = useState('')
+    const [file, setFile] = useState(null)
 
     const [loading, setLoading] = useState(false)
     const [form, setForm] = useState({
@@ -23,6 +27,8 @@ const MyPage = () => {
         setLoading(true)
         const result = await getDoc(doc(db, 'user', uid));
         setForm(result.data())
+        setImage(result.data().photo ? result.data().photo : 'https://via.placeholder.com/200x200');
+
         setLoading(false)
     }
 
@@ -34,24 +40,32 @@ const MyPage = () => {
     }
 
     const onChangeFile = e => {
-        setForm({
-            ...form,
-            image: URL.createObjectURL(e.target.files[0])
-        })
+        setImage(URL.createObjectURL(e.target.files[0]))
+        setFile(e.target.files[0])
     }
 
     const onUpdate = async () => {
         if (!window.confirm('수정된 내용을 저장하시겠습니까?')) return
 
-        await setDoc(doc(db, 'user', uid), form)
-        alert('수정이 완료되었습니다.')
+        setLoading(true)
+
+        if (file) {
+            const snapshot = await uploadBytes(ref(storage, `/photo/${Date.now()}.jpg`), file);
+            const url = await getDownloadURL(snapshot.ref);
+            await setDoc(doc(db, 'user', uid), { ...form, photo: url });
+        } else {
+            await setDoc(doc(db, 'user', uid), form);
+        }
+
+        setLoading(false)
+        history.pusy('/')
     }
 
     useEffect(() => {
         getUser()
     }, [])
 
-    if (loading) return <h1 className='text-center my-5'>유저 정보 조회 중......</h1>
+    if (loading) return <h1 className='text-center my-5'>로딩 중......</h1>
     return (
         <Row className='justify-content-center my-5'>
             <Col md={8}>
